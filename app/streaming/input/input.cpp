@@ -97,24 +97,36 @@ SdlInputHandler::SdlInputHandler(StreamingPreferences& prefs, int streamWidth, i
     m_SpecialKeyCombos[KeyComboToggleFullScreen].enabled = WMUtils::isRunningDesktopEnvironment();
 
     m_SpecialKeyCombos[KeyComboToggleStatsOverlay].keyCombo = KeyComboToggleStatsOverlay;
-    // Personal build: the stats letters are picked in Settings > 통계
-    auto letterKey = [](const char* key, char fallback) {
-        QString v = QSettings().value(key).toString().toUpper();
-        char c = v.length() == 1 && v[0] >= 'A' && v[0] <= 'Z' ? v[0].toLatin1() : fallback;
-        return c - 'A';
+    // Personal build: stats shortcuts and the Han/Eng key are picked in Settings > 통계.
+    // Shortcuts are "<mods>:<scancode>"; the old one-letter form meant Ctrl+Alt+Shift+letter.
+    auto binding = [](const char* key, const char* oldKey, SDL_Scancode fallback) {
+        QSettings s;
+        KeyBinding b = { 7, fallback };
+        QStringList parts = s.value(key).toString().split(':');
+        QString letter = s.value(oldKey).toString().toUpper();
+        if (parts.size() == 2) {
+            b.mods = parts[0].toInt();
+            b.scanCode = (SDL_Scancode)parts[1].toInt();
+        }
+        else if (letter.length() == 1 && letter[0] >= 'A' && letter[0] <= 'Z') {
+            b.scanCode = (SDL_Scancode)(SDL_SCANCODE_A + (letter[0].toLatin1() - 'A'));
+        }
+        return b;
     };
-    int statsLetter = letterKey("statsKey", 'S');
-    m_SpecialKeyCombos[KeyComboToggleStatsOverlay].keyCode = SDLK_a + statsLetter;
-    m_SpecialKeyCombos[KeyComboToggleStatsOverlay].scanCode = (SDL_Scancode)(SDL_SCANCODE_A + statsLetter);
-    m_SpecialKeyCombos[KeyComboToggleStatsOverlay].enabled = true;
-
+    m_StatsBinding = binding("statsBinding", "statsKey", SDL_SCANCODE_S);
+    m_StatsStyleBinding = binding("statsStyleBinding", "statsStyleKey", SDL_SCANCODE_T);
+    m_SwallowedScancode = SDL_SCANCODE_UNKNOWN;
     m_HangulScancode = (SDL_Scancode)QSettings().value("hangulKey", (int)SDL_SCANCODE_F19).toInt();
 
-    int styleLetter = letterKey("statsStyleKey", 'T');
+    // Handled by the bindings above instead
+    m_SpecialKeyCombos[KeyComboToggleStatsOverlay].keyCombo = KeyComboToggleStatsOverlay;
+    m_SpecialKeyCombos[KeyComboToggleStatsOverlay].keyCode = SDLK_UNKNOWN;
+    m_SpecialKeyCombos[KeyComboToggleStatsOverlay].scanCode = SDL_SCANCODE_UNKNOWN;
+    m_SpecialKeyCombos[KeyComboToggleStatsOverlay].enabled = false;
     m_SpecialKeyCombos[KeyComboToggleStatsStyle].keyCombo = KeyComboToggleStatsStyle;
-    m_SpecialKeyCombos[KeyComboToggleStatsStyle].keyCode = SDLK_a + styleLetter;
-    m_SpecialKeyCombos[KeyComboToggleStatsStyle].scanCode = (SDL_Scancode)(SDL_SCANCODE_A + styleLetter);
-    m_SpecialKeyCombos[KeyComboToggleStatsStyle].enabled = true;
+    m_SpecialKeyCombos[KeyComboToggleStatsStyle].keyCode = SDLK_UNKNOWN;
+    m_SpecialKeyCombos[KeyComboToggleStatsStyle].scanCode = SDL_SCANCODE_UNKNOWN;
+    m_SpecialKeyCombos[KeyComboToggleStatsStyle].enabled = false;
 
     m_SpecialKeyCombos[KeyComboToggleMouseMode].keyCombo = KeyComboToggleMouseMode;
     m_SpecialKeyCombos[KeyComboToggleMouseMode].keyCode = SDLK_m;

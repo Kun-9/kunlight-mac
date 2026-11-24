@@ -238,6 +238,15 @@ private:
     // Personal build: the Mac key that sends the Korean Han/Eng toggle (Settings > 키보드)
     SDL_Scancode m_HangulScancode;
 
+    // Personal build: stats shortcuts picked in Settings > 통계, any key with any modifiers
+    struct KeyBinding {
+        int mods; // 1 Ctrl, 2 Alt/Option, 4 Shift, 8 GUI/Command
+        SDL_Scancode scanCode;
+    };
+    KeyBinding m_StatsBinding;
+    KeyBinding m_StatsStyleBinding;
+    SDL_Scancode m_SwallowedScancode;
+
     SDL_TouchFingerEvent m_LastTouchDownEvent;
     SDL_TouchFingerEvent m_LastTouchUpEvent;
     SDL_TimerID m_LongPressTimer;

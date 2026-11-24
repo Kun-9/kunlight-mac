@@ -215,6 +215,34 @@ void SdlInputHandler::handleKeyEvent(SDL_KeyboardEvent* event)
         return;
     }
 
+    // Personal build: the stats shortcuts from settings. Their key-up is
+    // swallowed too so the host never sees half a key press.
+    if (event->state == SDL_RELEASED && event->keysym.scancode == m_SwallowedScancode) {
+        m_SwallowedScancode = SDL_SCANCODE_UNKNOWN;
+        return;
+    }
+    if (event->state == SDL_PRESSED) {
+        int mods = ((event->keysym.mod & KMOD_CTRL) ? 1 : 0) |
+                   ((event->keysym.mod & KMOD_ALT) ? 2 : 0) |
+                   ((event->keysym.mod & KMOD_SHIFT) ? 4 : 0) |
+                   ((event->keysym.mod & KMOD_GUI) ? 8 : 0);
+        const KeyBinding* hit = nullptr;
+        KeyCombo combo = KeyComboMax;
+        if (event->keysym.scancode == m_StatsBinding.scanCode && mods == m_StatsBinding.mods) {
+            hit = &m_StatsBinding;
+            combo = KeyComboToggleStatsOverlay;
+        }
+        else if (event->keysym.scancode == m_StatsStyleBinding.scanCode && mods == m_StatsStyleBinding.mods) {
+            hit = &m_StatsStyleBinding;
+            combo = KeyComboToggleStatsStyle;
+        }
+        if (hit != nullptr) {
+            m_SwallowedScancode = event->keysym.scancode;
+            performSpecialKeyCombo(combo);
+            return;
+        }
+    }
+
     // Check for our special key combos
     if ((event->state == SDL_PRESSED) &&
             (event->keysym.mod & KMOD_CTRL) &&

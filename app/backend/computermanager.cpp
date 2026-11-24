@@ -12,6 +12,18 @@
 #include <QThreadPool>
 #include <QCoreApplication>
 #include <QRandomGenerator>
+#include <QHostInfo>
+
+// Personal build: a Sunshine running on this same machine is found over mDNS,
+// but streaming to yourself is useless, so it is never listed
+static bool isThisMachine(const QString& name)
+{
+    auto bare = [](QString n) {
+        n = n.toLower();
+        return n.endsWith(".local") ? n.chopped(6) : n;
+    };
+    return !name.isEmpty() && bare(name) == bare(QHostInfo::localHostName());
+}
 
 #define SER_HOSTS "hosts"
 #define SER_HOSTS_BACKUP "hostsbackup"
@@ -182,6 +194,10 @@ ComputerManager::ComputerManager(StreamingPreferences* prefs)
     for (int i = 0; i < hosts; i++) {
         settings.setArrayIndex(i);
         NvComputer* computer = new NvComputer(settings);
+        if (isThisMachine(computer->name)) {
+            delete computer;
+            continue;
+        }
         m_KnownHosts[computer->uuid] = computer;
         m_LastSerializedHosts[computer->uuid] = *computer;
     }
@@ -921,6 +937,11 @@ private:
         }
         else {
             newComputer->manualAddress = m_Address;
+        }
+
+        if (m_Mdns && isThisMachine(newComputer->name)) {
+            delete newComputer;
+            return;
         }
 
         QHostAddress hostAddress(m_Address.address());
