@@ -8,6 +8,7 @@
 #include <QtGlobal>
 #include <QDir>
 #include <QGuiApplication>
+#include <QSettings>
 
 SdlInputHandler::SdlInputHandler(StreamingPreferences& prefs, int streamWidth, int streamHeight)
     : m_MultiController(prefs.multiController),
@@ -96,9 +97,24 @@ SdlInputHandler::SdlInputHandler(StreamingPreferences& prefs, int streamWidth, i
     m_SpecialKeyCombos[KeyComboToggleFullScreen].enabled = WMUtils::isRunningDesktopEnvironment();
 
     m_SpecialKeyCombos[KeyComboToggleStatsOverlay].keyCombo = KeyComboToggleStatsOverlay;
-    m_SpecialKeyCombos[KeyComboToggleStatsOverlay].keyCode = SDLK_s;
-    m_SpecialKeyCombos[KeyComboToggleStatsOverlay].scanCode = SDL_SCANCODE_S;
+    // Personal build: the stats letters are picked in Settings > 통계
+    auto letterKey = [](const char* key, char fallback) {
+        QString v = QSettings().value(key).toString().toUpper();
+        char c = v.length() == 1 && v[0] >= 'A' && v[0] <= 'Z' ? v[0].toLatin1() : fallback;
+        return c - 'A';
+    };
+    int statsLetter = letterKey("statsKey", 'S');
+    m_SpecialKeyCombos[KeyComboToggleStatsOverlay].keyCode = SDLK_a + statsLetter;
+    m_SpecialKeyCombos[KeyComboToggleStatsOverlay].scanCode = (SDL_Scancode)(SDL_SCANCODE_A + statsLetter);
     m_SpecialKeyCombos[KeyComboToggleStatsOverlay].enabled = true;
+
+    m_HangulScancode = (SDL_Scancode)QSettings().value("hangulKey", (int)SDL_SCANCODE_F19).toInt();
+
+    int styleLetter = letterKey("statsStyleKey", 'T');
+    m_SpecialKeyCombos[KeyComboToggleStatsStyle].keyCombo = KeyComboToggleStatsStyle;
+    m_SpecialKeyCombos[KeyComboToggleStatsStyle].keyCode = SDLK_a + styleLetter;
+    m_SpecialKeyCombos[KeyComboToggleStatsStyle].scanCode = (SDL_Scancode)(SDL_SCANCODE_A + styleLetter);
+    m_SpecialKeyCombos[KeyComboToggleStatsStyle].enabled = true;
 
     m_SpecialKeyCombos[KeyComboToggleMouseMode].keyCombo = KeyComboToggleMouseMode;
     m_SpecialKeyCombos[KeyComboToggleMouseMode].keyCode = SDLK_m;

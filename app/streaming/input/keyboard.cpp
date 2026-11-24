@@ -1,4 +1,7 @@
 #include "streaming/session.h"
+#include "streaming/video/statspanel.h"
+
+#include <QSettings>
 
 #include <Limelight.h>
 #include "SDL_compat.h"
@@ -66,6 +69,23 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
         Session::get()->getOverlayManager().setOverlayState(Overlay::OverlayDebug,
                                                             !Session::get()->getOverlayManager().isOverlayEnabled(Overlay::OverlayDebug));
         break;
+
+    case KeyComboToggleStatsStyle: {
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "Detected stats style toggle combo");
+
+        // Card <-> strip; shows the stats too if they were off
+        int next = StatsPanel::style() == StatsPanel::StyleCard ? StatsPanel::StyleStrip : StatsPanel::StyleCard;
+        QSettings().setValue("statsStyle", next);
+        Overlay::OverlayManager& overlays = Session::get()->getOverlayManager();
+        if (overlays.isOverlayEnabled(Overlay::OverlayDebug)) {
+            overlays.setOverlayTextUpdated(Overlay::OverlayDebug);
+        }
+        else {
+            overlays.setOverlayState(Overlay::OverlayDebug, true);
+        }
+        break;
+    }
 
     case KeyComboToggleMouseMode:
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
@@ -246,7 +266,17 @@ void SdlInputHandler::handleKeyEvent(SDL_KeyboardEvent* event)
     // Set keycode. We explicitly use scancode here because GFE will try to correct
     // for AZERTY layouts on the host but it depends on receiving VK_ values matching
     // a QWERTY layout to work.
-    if (event->keysym.scancode >= SDL_SCANCODE_1 && event->keysym.scancode <= SDL_SCANCODE_9) {
+    if (event->keysym.scancode == m_HangulScancode) {
+        // Personal build: the chosen key sends the Korean Han/Eng toggle (VK_HANGUL).
+        // F19 is the default: Karabiner turns the Mac's Han/Eng key (Right Command, F12)
+        // into F19 while Moonlight is in front, because macOS keeps F12 for its own
+        // input source switch. Not F13: SDL reports the Mac F13 key as Print Screen.
+        // Its own modifier bit (a right Option or Command) must not ride along.
+        keyCode = 0x15;
+        modifiers = 0;
+        shouldNotConvertToScanCodeOnServer = true;
+    }
+    else if (event->keysym.scancode >= SDL_SCANCODE_1 && event->keysym.scancode <= SDL_SCANCODE_9) {
         // SDL defines SDL_SCANCODE_0 > SDL_SCANCODE_9, so we need to handle that manually
         keyCode = (event->keysym.scancode - SDL_SCANCODE_1) + VK_0 + 1;
     }

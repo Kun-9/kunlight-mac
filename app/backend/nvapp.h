@@ -15,7 +15,8 @@ public:
                 hdrSupported == other.hdrSupported &&
                 isAppCollectorGame == other.isAppCollectorGame &&
                 hidden == other.hidden &&
-                directLaunch == other.directLaunch;
+                directLaunch == other.directLaunch &&
+                order == other.order;
     }
 
     bool operator!=(const NvApp& other) const
@@ -39,6 +40,7 @@ public:
     bool isAppCollectorGame = false;
     bool hidden = false;
     bool directLaunch = false;
+    int order = -1; // client-side position set by the user, -1 = not ordered
 };
 
 Q_DECLARE_METATYPE(NvApp)

@@ -1,23 +1,44 @@
 import QtQuick 2.0
 import QtQuick.Controls 2.2
 import QtQuick.Window 2.2
+import QtQuick.Effects
 
 import SdlGamepadKeyNavigation 1.0
 import Session 1.0
 import SystemProperties 1.0
 
 Item {
+    id: segueRoot
+    readonly property bool ownsTopBar: true
     property Session session
     property string appName
+    // Personal build: cover shown blurred behind and small in the middle
+    property string boxart: ""
     property string stageText : isResume ? qsTr("Resuming %1...").arg(appName) :
                                            qsTr("Starting %1...").arg(appName)
     property bool isResume : false
     property bool quitAfter : false
 
+    // Personal build: keep "<app> 시작 중" as the headline and show the
+    // connection step underneath, in Korean
+    property string stageDetail: ""
+    readonly property var stageNamesKo: ({
+        "platform initialization": "준비",
+        "name resolution": "주소 찾기",
+        "audio stream initialization": "소리 준비",
+        "RTSP handshake": "연결 약속",
+        "control stream initialization": "제어 준비",
+        "video stream initialization": "화면 준비",
+        "input stream initialization": "입력 준비",
+        "control stream establishment": "제어 연결",
+        "video stream establishment": "화면 연결",
+        "audio stream establishment": "소리 연결",
+        "input stream establishment": "입력 연결"
+    })
+
     function stageStarting(stage)
     {
-        // Update the spinner text
-        stageText = qsTr("Starting %1...").arg(stage)
+        stageDetail = stageNamesKo[stage] || stage
     }
 
     function stageFailed(stage, errorCode, failingPorts)
@@ -101,17 +122,11 @@ Item {
     }
 
     StackView.onDeactivating: {
-        // Show the toolbar again when popped off the stack
-        toolBar.visible = true
-
         // Re-enable GUI gamepad usage now
         SdlGamepadKeyNavigation.enable()
     }
 
     StackView.onActivated: {
-        // Hide the toolbar before we start loading
-        toolBar.visible = false
-
         // Hook up our signals
         session.stageStarting.connect(stageStarting)
         session.stageFailed.connect(stageFailed)
@@ -153,7 +168,8 @@ Item {
             // with Session.exec() which requires no concurrent
             // gamepad usage.
             hintText.text = qsTr("Tip:") + " " + qsTr("Press %1 to disconnect your session").arg(SdlGamepadKeyNavigation.getConnectedGamepads() > 0 ?
-                                                  qsTr("Start+Select+L1+R1") : qsTr("Ctrl+Alt+Shift+Q"))
+                                                  qsTr("Start+Select+L1+R1") :
+                                                  (Qt.platform.os === "osx" ? "Ctrl+Option+Shift+Q" : qsTr("Ctrl+Alt+Shift+Q")))
 
             // Stop GUI gamepad usage now
             SdlGamepadKeyNavigation.disable()
@@ -200,33 +216,108 @@ Item {
         sourceComponent: Item {}
     }
 
-    Row {
-        anchors.centerIn: parent
-        spacing: 5
+    Image {
+        id: segueArt
+        anchors.fill: parent
+        source: boxart
+        fillMode: Image.PreserveAspectCrop
+        sourceSize.width: 32
+        visible: false
+    }
+    MultiEffect {
+        anchors.fill: parent
+        source: segueArt
+        visible: boxart !== ""
+        blurEnabled: true
+        blurMax: 64
+        blur: 1.0
+        brightness: -0.3
+        opacity: 0.5
+    }
 
-        BusyIndicator {
-            id: stageSpinner
-            running: visible
-            visible: false
+    Column {
+        anchors.centerIn: parent
+        anchors.verticalCenterOffset: 10
+        spacing: 22
+
+        Item {
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: boxart !== ""
+            // Sized from the window so the cover is the main thing on screen
+            height: Math.min(segueRoot.height * 0.5, 460)
+            width: height * 3 / 4
+
+            Image {
+                id: segueCover
+                anchors.fill: parent
+                source: boxart
+                fillMode: Image.PreserveAspectCrop
+                visible: false
+            }
+            Item {
+                id: segueCoverMask
+                anchors.fill: parent
+                layer.enabled: true
+                visible: false
+                Rectangle { anchors.fill: parent; radius: 18 }
+            }
+            // Drawn separately: a shadow on the masked effect pads it and
+            // pushes the rounded corners out of view
+            RectangularShadow {
+                anchors.fill: parent
+                radius: 18
+                blur: 40
+                offset.y: 16
+                color: "#b3000000"
+            }
+            MultiEffect {
+                anchors.fill: parent
+                source: segueCover
+                maskEnabled: true
+                maskSource: segueCoverMask
+            }
+        }
+
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 10
+
+            BusyIndicator {
+                id: stageSpinner
+                running: visible
+                visible: false
+                width: 28
+                height: 28
+            }
+
+            Label {
+                id: stageLabel
+                height: stageSpinner.height
+                text: stageText
+                font.pointSize: 15
+                font.weight: Font.Medium
+                verticalAlignment: Text.AlignVCenter
+
+                wrapMode: Text.Wrap
+            }
         }
 
         Label {
-            id: stageLabel
-            height: stageSpinner.height
-            text: stageText
-            font.pointSize: 20
-            verticalAlignment: Text.AlignVCenter
-
-            wrapMode: Text.Wrap
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: stageLabel.visible && stageDetail !== ""
+            text: stageDetail
+            font.pointSize: 11
+            opacity: 0.55
         }
     }
 
     Label {
         id: hintText
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 50
+        anchors.bottomMargin: 28
         anchors.horizontalCenter: parent.horizontalCenter
-        font.pointSize: 18
+        font.pointSize: 12
+        opacity: 0.55
         verticalAlignment: Text.AlignVCenter
 
         wrapMode: Text.Wrap

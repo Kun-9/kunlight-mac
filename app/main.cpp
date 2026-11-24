@@ -1,3 +1,6 @@
+#ifdef __APPLE__
+#include "gui/mactitlebar.h"
+#endif
 #include <QGuiApplication>
 #include <QStyleHints>
 #include <QQmlApplicationEngine>
@@ -435,6 +438,8 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName("Moonlight Game Streaming Project");
     QCoreApplication::setOrganizationDomain("moonlight-stream.com");
     QCoreApplication::setApplicationName("Moonlight");
+    // Personal build: shown name only; the settings above stay under "Moonlight"
+    QGuiApplication::setApplicationDisplayName("KUNLIGHT");
 
     if (QFile(QDir::currentPath() + "/portable.dat").exists()) {
         QSettings::setDefaultFormat(QSettings::IniFormat);
@@ -728,8 +733,8 @@ int main(int argc, char *argv[])
     // Set our app name for SDL to use with PulseAudio and PipeWire. This matches what we
     // provide as our app name to libsoundio too. On SDL 2.0.18+, SDL_APP_NAME is also used
     // for screensaver inhibitor reporting.
-    SDL_SetHint(SDL_HINT_AUDIO_DEVICE_APP_NAME, "Moonlight");
-    SDL_SetHint(SDL_HINT_APP_NAME, "Moonlight");
+    SDL_SetHint(SDL_HINT_AUDIO_DEVICE_APP_NAME, "KUNLIGHT");
+    SDL_SetHint(SDL_HINT_APP_NAME, "KUNLIGHT");
 
     // SDL will try to lock the mouse cursor on Wayland if it's not visible in order to
     // support applications that assume they can warp the cursor (which isn't possible
@@ -946,6 +951,7 @@ int main(int argc, char *argv[])
     // Register our C++ types for QML
     qmlRegisterType<ComputerModel>("ComputerModel", 1, 0, "ComputerModel");
     qmlRegisterType<AppModel>("AppModel", 1, 0, "AppModel");
+    qmlRegisterSingletonType(QUrl("qrc:/gui/Theme.qml"), "Theme", 1, 0, "Theme");
     qmlRegisterUncreatableType<Session>("Session", 1, 0, "Session", "Session cannot be created from QML");
     qmlRegisterSingletonType<ComputerManager>("ComputerManager", 1, 0,
                                               "ComputerManager",
@@ -977,7 +983,7 @@ int main(int argc, char *argv[])
     IdentityManager::get();
 
     // We require the Material theme
-    QQuickStyle::setStyle("Material");
+    QQuickStyle::setStyle("MoonStyle");
 
     // Our icons are styled for a dark theme, so we do not allow the user to override this
     qputenv("QT_QUICK_CONTROLS_MATERIAL_THEME", "Dark");
@@ -997,12 +1003,13 @@ int main(int argc, char *argv[])
     }
 
     QQmlApplicationEngine engine;
+    engine.addImportPath("qrc:/");
     QString initialView;
     bool hasGUI = true;
 
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::NormalStartRequested:
-        initialView = "qrc:/gui/PcView.qml";
+        initialView = "qrc:/gui/HomeView.qml";
         break;
     case GlobalCommandLineParser::StreamRequested:
         {
@@ -1053,6 +1060,9 @@ int main(int argc, char *argv[])
         engine.load(QUrl(QStringLiteral("qrc:/gui/main.qml")));
         if (engine.rootObjects().isEmpty())
             return -1;
+#ifdef Q_OS_DARWIN
+        MacTitlebar::apply(qobject_cast<QWindow*>(engine.rootObjects().first()));
+#endif
     }
 
     int err = app.exec();

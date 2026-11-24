@@ -47,6 +47,29 @@ Session* AppModel::createSessionForApp(int appIndex)
     return new Session(m_Computer, app);
 }
 
+// -1 when nothing runs or the running app is hidden from the grid
+int AppModel::getRunningAppIndex()
+{
+    for (int i = 0; m_CurrentGameId != 0 && i < m_VisibleApps.count(); i++) {
+        if (m_VisibleApps[i].id == m_CurrentGameId) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+int AppModel::getDesktopAppIndex()
+{
+    for (int i = 0; i < m_VisibleApps.count(); i++) {
+        if (m_VisibleApps[i].name.compare("Desktop", Qt::CaseInsensitive) == 0) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 int AppModel::getDirectLaunchAppIndex()
 {
     for (int i = 0; i < m_VisibleApps.count(); i++) {
@@ -178,19 +201,14 @@ void AppModel::updateAppList(QVector<NvApp> newList)
     }
 
     // Process additions now
-    for (const NvApp& newApp : std::as_const(newVisibleList)) {
-        int insertionIndex = m_VisibleApps.size();
+    for (int j = 0; j < newVisibleList.count(); j++) {
+        const NvApp& newApp = newVisibleList.at(j);
+        int insertionIndex = qMin(j, (int)m_VisibleApps.size());
         bool found = false;
 
-        for (int i = 0; i < m_VisibleApps.count(); i++) {
-            const NvApp& existingApp = m_VisibleApps.at(i);
-
+        for (const NvApp& existingApp : std::as_const(m_VisibleApps)) {
             if (existingApp.id == newApp.id) {
                 found = true;
-                break;
-            }
-            else if (existingApp.name.toLower() > newApp.name.toLower()) {
-                insertionIndex = i;
                 break;
             }
         }
@@ -222,6 +240,56 @@ void AppModel::setAppHidden(int appIndex, bool hidden)
     }
 
     m_ComputerManager->clientSideAttributeUpdated(m_Computer);
+}
+
+int AppModel::moveApp(int appIndex, int delta)
+{
+    int target = appIndex + delta;
+    if (appIndex < 0 || appIndex >= m_VisibleApps.count() ||
+            target < 0 || target >= m_VisibleApps.count() || delta == 0) {
+        return appIndex;
+    }
+
+    int appId = m_VisibleApps.at(appIndex).id;
+    int neighborId = m_VisibleApps.at(target).id;
+
+    {
+        QWriteLocker lock(&m_Computer->lock);
+
+        QVector<NvApp>& list = m_Computer->appList;
+        int from = -1;
+        for (int i = 0; i < list.count(); i++) {
+            if (list[i].id == appId) {
+                from = i;
+                break;
+            }
+        }
+        if (from < 0) {
+            return appIndex;
+        }
+
+        NvApp moved = list.takeAt(from);
+        int to = 0;
+        for (int i = 0; i < list.count(); i++) {
+            if (list[i].id == neighborId) {
+                to = delta < 0 ? i : i + 1;
+                break;
+            }
+        }
+        list.insert(to, moved);
+
+        // Pin every app to its current place so the order survives restarts
+        for (int i = 0; i < list.count(); i++) {
+            list[i].order = i;
+        }
+    }
+
+    beginMoveRows(QModelIndex(), appIndex, appIndex, QModelIndex(), delta > 0 ? target + 1 : target);
+    m_VisibleApps.move(appIndex, target);
+    endMoveRows();
+
+    m_ComputerManager->clientSideAttributeUpdated(m_Computer);
+    return target;
 }
 
 void AppModel::setAppDirectLaunch(int appIndex, bool directLaunch)

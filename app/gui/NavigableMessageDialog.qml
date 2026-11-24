@@ -36,9 +36,14 @@ NavigableDialog {
                         "qrc:/res/baseline-error_outline-24px.svg"
             sourceSize {
                 // The icon should be square so use the height as the width too
-                width: 50
-                height: 50
+                width: 26
+                height: 26
             }
+            // Fixed size so the dialog is measured before the SVG loads
+            Layout.preferredWidth: 26
+            Layout.preferredHeight: 26
+            Layout.alignment: Qt.AlignTop
+            opacity: 0.7
             visible: !showSpinner
         }
 

@@ -9,9 +9,32 @@ import AutoUpdateChecker 1.0
 import StreamingPreferences 1.0
 import SystemProperties 1.0
 import SdlGamepadKeyNavigation 1.0
+import Theme 1.0
 
 ApplicationWindow {
     property bool pollingActive: false
+
+    // macOS: draw under a transparent title bar so the backdrop runs to the top edge
+    flags: Qt.platform.os === "osx" ? (Qt.Window | Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint) : Qt.Window
+
+    // Pretendard for the whole UI (bundled, SIL OFL)
+    FontLoader { source: "qrc:/res/fonts/Pretendard-Regular.otf" }
+    FontLoader { source: "qrc:/res/fonts/Pretendard-Medium.otf" }
+    FontLoader { source: "qrc:/res/fonts/Pretendard-SemiBold.otf" }
+    FontLoader { source: "qrc:/res/fonts/Pretendard-Bold.otf" }
+    font.family: "Pretendard"
+
+    Material.theme: Material.Dark
+    Material.accent: Theme.accent
+    Material.primary: Theme.bgTop
+    Material.background: Theme.surface
+    Material.foreground: Theme.text
+    background: Rectangle {
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Theme.bgTop }
+            GradientStop { position: 0.75; color: Theme.bgBottom }
+        }
+    }
 
     // Set by SettingsView to force the back operation to pop all
     // pages except the initial view. This is required when doing
@@ -28,7 +51,7 @@ ApplicationWindow {
         // in order to improve contrast between GFE's placeholder box art
         // and the background of the app grid.
         if (SystemProperties.usesMaterial3Theme) {
-            Material.background = "#303030"
+            Material.background = Theme.surface
         }
 
         SdlGamepadKeyNavigation.enable()
@@ -243,7 +266,16 @@ ApplicationWindow {
 
     header: ToolBar {
         id: toolBar
-        height: 60
+        // macOS: one slim row level with the traffic lights
+        height: Qt.platform.os === "osx" ? 52 : 60
+        // Screens that draw their own top row (HomeView, StreamSegue) say so
+        visible: !(stackView.currentItem && stackView.currentItem.ownsTopBar === true)
+        // Ignore the title-bar safe area so the icons keep their size
+        topPadding: 0
+        bottomPadding: 0
+        background: Rectangle {
+            color: "transparent"
+        }
         anchors.topMargin: 5
         anchors.bottomMargin: 5
 
@@ -252,7 +284,7 @@ ApplicationWindow {
             visible: toolBar.width > 700
             anchors.fill: parent
             text: stackView.currentItem.objectName
-            font.pointSize: 20
+            font.pointSize: Qt.platform.os === "osx" ? 14 : 20
             elide: Label.ElideRight
             horizontalAlignment: Qt.AlignHCenter
             verticalAlignment: Qt.AlignVCenter
@@ -260,7 +292,8 @@ ApplicationWindow {
 
         RowLayout {
             spacing: 10
-            anchors.leftMargin: 10
+            // Clear the traffic lights under the transparent macOS title bar
+            anchors.leftMargin: Qt.platform.os === "osx" ? 78 : 10
             anchors.rightMargin: 10
             anchors.fill: parent
 
@@ -268,7 +301,7 @@ ApplicationWindow {
                 // Only make the button visible if the user has navigated somewhere.
                 visible: stackView.depth > 1
 
-                iconSource: "qrc:/res/arrow_left.svg"
+                iconSource: "qrc:/res/custom/back.svg"
 
                 onClicked: goBack()
 
@@ -295,7 +328,7 @@ ApplicationWindow {
 
             Label {
                 id: versionLabel
-                visible: stackView.currentItem instanceof SettingsView
+                visible: stackView.currentItem instanceof SettingsShell
                 text: qsTr("Version %1").arg(SystemProperties.versionString)
                 font.pointSize: 12
                 horizontalAlignment: Qt.AlignRight
@@ -304,8 +337,7 @@ ApplicationWindow {
 
             NavigableToolButton {
                 id: discordButton
-                visible: SystemProperties.hasBrowser &&
-                         stackView.currentItem instanceof SettingsView
+                visible: false
 
                 iconSource: "qrc:/res/discord.svg"
 
@@ -324,9 +356,9 @@ ApplicationWindow {
 
             NavigableToolButton {
                 id: addPcButton
-                visible: stackView.currentItem instanceof PcView
+                visible: stackView.currentItem instanceof PcView || stackView.currentItem instanceof HomeView
 
-                iconSource:  "qrc:/res/ic_add_to_queue_white_48px.svg"
+                iconSource:  "qrc:/res/custom/plus.svg"
 
                 ToolTip.delay: 1000
                 ToolTip.timeout: 3000
@@ -388,7 +420,7 @@ ApplicationWindow {
 
             NavigableToolButton {
                 id: helpButton
-                visible: SystemProperties.hasBrowser
+                visible: false
 
                 iconSource: "qrc:/res/question_mark.svg"
 
@@ -431,10 +463,11 @@ ApplicationWindow {
 
             NavigableToolButton {
                 id: settingsButton
+                visible: !(stackView.currentItem instanceof SettingsShell)
 
-                iconSource:  "qrc:/res/settings.svg"
+                iconSource:  "qrc:/res/custom/gear.svg"
 
-                onClicked: navigateTo("qrc:/gui/SettingsView.qml", SettingsView)
+                onClicked: navigateTo("qrc:/gui/SettingsShell.qml", SettingsShell)
 
                 Keys.onDownPressed: {
                     stackView.currentItem.forceActiveFocus(Qt.TabFocus)

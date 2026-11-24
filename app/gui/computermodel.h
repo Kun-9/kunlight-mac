@@ -41,6 +41,9 @@ public:
 
     Q_INVOKABLE void wakeComputer(int computerIndex);
 
+    // Moves a PC to another place in the list and remembers it. Returns the new index.
+    Q_INVOKABLE int moveComputer(int computerIndex, int targetIndex);
+
     Q_INVOKABLE void renameComputer(int computerIndex, QString name);
 
     Q_INVOKABLE Session* createSessionForCurrentGame(int computerIndex);

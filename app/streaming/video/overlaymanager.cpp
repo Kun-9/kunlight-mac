@@ -1,5 +1,6 @@
 #include "overlaymanager.h"
 #include "path.h"
+#include "statspanel.h"
 
 using namespace Overlay;
 
@@ -151,6 +152,7 @@ void OverlayManager::notifyOverlayUpdated(OverlayType type)
     SDL_Surface* oldSurface = (SDL_Surface*)SDL_AtomicSetPtr(
         (void**)&m_Overlays[type].surface,
         m_Overlays[type].enabled ?
+            (type == OverlayDebug && StatsPanel::style() != StatsPanel::StyleText ? StatsPanel::render() : nullptr) ?:
             // The _Wrapped variant is required for line breaks to work
             RenderTextOutlinedWrapped(m_Overlays[type].font,
                                       m_Overlays[type].text,

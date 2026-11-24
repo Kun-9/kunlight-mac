@@ -317,6 +317,16 @@ CenteredGridView {
                     ToolTip.visible: hovered
                 }
                 NavigableMenuItem {
+                    text: "앞으로 옮기기"
+                    enabled: model.index > 0
+                    onTriggered: appGrid.currentIndex = appModel.moveApp(model.index, -1)
+                }
+                NavigableMenuItem {
+                    text: "뒤로 옮기기"
+                    enabled: model.index < appGrid.count - 1
+                    onTriggered: appGrid.currentIndex = appModel.moveApp(model.index, 1)
+                }
+                NavigableMenuItem {
                     checkable: true
                     checked: model.hidden
                     text: qsTr("Hide Game")

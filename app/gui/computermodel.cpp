@@ -1,4 +1,5 @@
 #include "computermodel.h"
+#include <QSettings>
 
 #include <QThreadPool>
 
@@ -223,6 +224,28 @@ void ComputerModel::pairComputer(int computerIndex, QString pin)
 void ComputerModel::handlePairingCompleted(NvComputer*, QString error)
 {
     emit pairingCompleted(error.isEmpty() ? QVariant() : error);
+}
+
+int ComputerModel::moveComputer(int computerIndex, int targetIndex)
+{
+    if (computerIndex < 0 || computerIndex >= m_Computers.count() ||
+            targetIndex < 0 || targetIndex >= m_Computers.count() || computerIndex == targetIndex) {
+        return computerIndex;
+    }
+
+    QVector<NvComputer*> reordered = m_Computers;
+    reordered.move(computerIndex, targetIndex);
+
+    QStringList order;
+    for (NvComputer* computer : std::as_const(reordered)) {
+        order.append(computer->uuid);
+    }
+    QSettings().setValue("pcOrder", order);
+
+    beginResetModel();
+    m_Computers = m_ComputerManager->getComputers();
+    endResetModel();
+    return targetIndex;
 }
 
 void ComputerModel::handleComputerStateChanged(NvComputer* computer)

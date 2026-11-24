@@ -122,7 +122,13 @@ bool NvComputer::isEqualSerialized(const NvComputer &that) const
 
 void NvComputer::sortAppList()
 {
+    // User-ordered apps first, in their order; new apps after them by name
     std::stable_sort(appList.begin(), appList.end(), [](const NvApp& app1, const NvApp& app2) {
+       int o1 = app1.order < 0 ? INT_MAX : app1.order;
+       int o2 = app2.order < 0 ? INT_MAX : app2.order;
+       if (o1 != o2) {
+           return o1 < o2;
+       }
        return app1.name.toLower() < app2.name.toLower();
     });
 }
@@ -473,6 +479,7 @@ bool NvComputer::updateAppList(QVector<NvApp> newAppList) {
             if (existingApp.id == newApp.id) {
                 newApp.hidden = existingApp.hidden;
                 newApp.directLaunch = existingApp.directLaunch;
+                newApp.order = existingApp.order;
             }
         }
     }

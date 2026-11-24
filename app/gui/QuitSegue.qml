@@ -6,6 +6,8 @@ import Session 1.0
 
 Item {
     property string appName
+    // Toolbar visibility follows main.qml's binding; setting it here broke that binding
+    readonly property bool ownsTopBar: true
     property var quitRunningAppFn
     property Session nextSession : null
     property string nextAppName : ""
@@ -34,9 +36,6 @@ Item {
     }
 
     StackView.onActivated: {
-        // Hide the toolbar before we start loading
-        toolBar.visible = false
-
         // Connect the quit completion signal
         ComputerManager.quitAppCompleted.connect(quitAppCompleted)
 
@@ -47,9 +46,6 @@ Item {
     }
 
     StackView.onDeactivating: {
-        // Show the toolbar again
-        toolBar.visible = true
-
         // Disconnect the signal
         ComputerManager.quitAppCompleted.disconnect(quitAppCompleted)
     }

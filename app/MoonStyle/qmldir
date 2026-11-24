@@ -1,0 +1,10 @@
+module MoonStyle
+CheckBox CheckBox.qml
+GroupBox GroupBox.qml
+ComboBox ComboBox.qml
+Button Button.qml
+Dialog Dialog.qml
+DialogButtonBox DialogButtonBox.qml
+BusyIndicator BusyIndicator.qml
+TextField TextField.qml
+import QtQuick.Controls.Material auto

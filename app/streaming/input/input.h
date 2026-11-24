@@ -168,6 +168,7 @@ private:
         KeyComboTogglePointerRegionLock,
         KeyComboQuitAndExit,
         KeyComboToggleKeyboardGrab,
+        KeyComboToggleStatsStyle,
         KeyComboMax
     };
 
@@ -233,6 +234,9 @@ private:
         SDL_Scancode scanCode;
         bool enabled;
     } m_SpecialKeyCombos[KeyComboMax];
+
+    // Personal build: the Mac key that sends the Korean Han/Eng toggle (Settings > 키보드)
+    SDL_Scancode m_HangulScancode;
 
     SDL_TouchFingerEvent m_LastTouchDownEvent;
     SDL_TouchFingerEvent m_LastTouchUpEvent;

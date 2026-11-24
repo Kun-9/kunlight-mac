@@ -1,4 +1,6 @@
 #include "computermanager.h"
+#include <QSettings>
+#include <climits>
 #include "boxartmanager.h"
 #include "nvhttp.h"
 #include "nvpairingmanager.h"
@@ -493,9 +495,17 @@ QVector<NvComputer*> ComputerManager::getComputers()
 {
     QReadLocker lock(&m_Lock);
 
-    // Return a sorted host list
+    // Return a sorted host list: the user's saved order first (personal
+    // build, "pcOrder" setting), then the rest by name
     auto hosts = QVector<NvComputer*>::fromList(m_KnownHosts.values());
-    std::stable_sort(hosts.begin(), hosts.end(), [](const NvComputer* host1, const NvComputer* host2) {
+    const QStringList order = QSettings().value("pcOrder").toStringList();
+    std::stable_sort(hosts.begin(), hosts.end(), [&order](const NvComputer* host1, const NvComputer* host2) {
+        int o1 = order.indexOf(host1->uuid), o2 = order.indexOf(host2->uuid);
+        if (o1 < 0) o1 = INT_MAX;
+        if (o2 < 0) o2 = INT_MAX;
+        if (o1 != o2) {
+            return o1 < o2;
+        }
         return host1->name.toLower() < host2->name.toLower();
     });
     return hosts;

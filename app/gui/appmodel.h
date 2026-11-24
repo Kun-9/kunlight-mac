@@ -33,6 +33,10 @@ public:
 
     Q_INVOKABLE int getRunningAppId();
 
+    Q_INVOKABLE int getRunningAppIndex();
+
+    Q_INVOKABLE int getDesktopAppIndex();
+
     Q_INVOKABLE QString getRunningAppName();
 
     Q_INVOKABLE void quitRunningApp();
@@ -40,6 +44,9 @@ public:
     Q_INVOKABLE void setAppHidden(int appIndex, bool hidden);
 
     Q_INVOKABLE void setAppDirectLaunch(int appIndex, bool directLaunch);
+
+    // Moves the app one place earlier (-1) or later (+1). Returns the new index.
+    Q_INVOKABLE int moveApp(int appIndex, int delta);
 
     QVariant data(const QModelIndex &index, int role) const override;
 
