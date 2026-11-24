@@ -148,19 +148,26 @@ void OverlayManager::notifyOverlayUpdated(OverlayType type)
         }
     }
 
+    // Stats card or strip first; the stock text if that is off or fails
+    SDL_Surface* newSurface = nullptr;
+    if (m_Overlays[type].enabled) {
+        if (type == OverlayDebug && StatsPanel::style() != StatsPanel::StyleText) {
+            newSurface = StatsPanel::render();
+        }
+        if (newSurface == nullptr) {
+            // The _Wrapped variant is required for line breaks to work
+            newSurface = RenderTextOutlinedWrapped(m_Overlays[type].font,
+                                                   m_Overlays[type].text,
+                                                   m_Overlays[type].color,
+                                                   {0, 0, 0, 255},
+                                                   4,
+                                                   1024);
+        }
+    }
+
     // Exchange the old surface with the new one
     SDL_Surface* oldSurface = (SDL_Surface*)SDL_AtomicSetPtr(
-        (void**)&m_Overlays[type].surface,
-        m_Overlays[type].enabled ?
-            (type == OverlayDebug && StatsPanel::style() != StatsPanel::StyleText ? StatsPanel::render() : nullptr) ?:
-            // The _Wrapped variant is required for line breaks to work
-            RenderTextOutlinedWrapped(m_Overlays[type].font,
-                                      m_Overlays[type].text,
-                                      m_Overlays[type].color,
-                                      {0, 0, 0, 255},
-                                      4,
-                                      1024)
-            : nullptr);
+        (void**)&m_Overlays[type].surface, newSurface);
 
     // Notify the renderer
     m_Renderer->notifyOverlayUpdated(type);
