@@ -20,6 +20,7 @@ static bool isThisMachine(const QString& name)
 {
     auto bare = [](QString n) {
         n = n.toLower();
+        if (n.endsWith('.')) n.chop(1);
         return n.endsWith(".local") ? n.chopped(6) : n;
     };
     return !name.isEmpty() && bare(name) == bare(QHostInfo::localHostName());
