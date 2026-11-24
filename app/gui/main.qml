@@ -555,7 +555,7 @@ ApplicationWindow {
 
     NavigableDialog {
         id: addPcDialog
-        property string label: qsTr("Enter the IP address of your host PC:")
+        property string label: "PC 주소 추가"
 
         standardButtons: Dialog.Ok | Dialog.Cancel
 
@@ -575,14 +575,19 @@ ApplicationWindow {
         }
 
         ColumnLayout {
+            spacing: 12
+
             Label {
                 text: addPcDialog.label
+                font.pointSize: 15
                 font.bold: true
             }
 
             TextField {
                 id: editText
                 Layout.fillWidth: true
+                Layout.preferredWidth: 320
+                placeholderText: "IP 주소나 이름 (예: 192.168.0.10)"
                 focus: true
 
                 Keys.onReturnPressed: {

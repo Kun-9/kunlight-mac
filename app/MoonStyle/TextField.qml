@@ -41,7 +41,8 @@ T.TextField {
         implicitHeight: 38
         radius: 8
         color: Theme.chipHover
-        border.width: control.activeFocus ? 1 : 0
-        border.color: Theme.accent
+        // Soft white edge when focused; the accent ring looked loud on Windows
+        border.width: 1
+        border.color: control.activeFocus ? "#4dffffff" : "#14ffffff"
     }
 }
